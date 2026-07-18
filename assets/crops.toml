@@ -1,0 +1,59 @@
+[[crops]]
+id = "radish"
+name = "Radish"
+seed_price = 2
+sell_price = 5
+grow_seconds = 30
+unlock_earnings = 0
+color = "red"
+art = [
+    [" · ", " ░ "],
+    [" ╷ ", " ░ "],
+    [" ♧ ", " ╵ "],
+    [" ● ", " ╵ "],
+]
+
+[[crops]]
+id = "carrot"
+name = "Carrot"
+seed_price = 8
+sell_price = 20
+grow_seconds = 90
+unlock_earnings = 75
+color = "yellow"
+art = [
+    [" ˙ ", " ░ "],
+    [" ╷ ", " ░ "],
+    [" ♧ ", " ╵ "],
+    [" ♧ ", " ▼ "],
+]
+
+[[crops]]
+id = "potato"
+name = "Potato"
+seed_price = 25
+sell_price = 65
+grow_seconds = 240
+unlock_earnings = 400
+color = "magenta"
+art = [
+    [" · ", " ░ "],
+    [" ╷ ", " ░ "],
+    [" ♧ ", " ╵ "],
+    [" ♣ ", " ◆ "],
+]
+
+[[crops]]
+id = "wheat"
+name = "Wheat"
+seed_price = 70
+sell_price = 190
+grow_seconds = 600
+unlock_earnings = 1500
+color = "yellow"
+art = [
+    [" ˙ ", " ░ "],
+    [" ╷ ", " ░ "],
+    [" ╽ ", " ╵ "],
+    [" Ψ ", " ╵ "],
+]

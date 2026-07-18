@@ -20,6 +20,7 @@ pub struct View<'a> {
     pub offset_col: u32,
     pub status: &'a str,
     pub hovered_shop: Option<ShopTarget>,
+    pub reset_armed: bool,
     pub compatibility: bool,
     pub no_color: bool,
 }
@@ -31,6 +32,7 @@ pub enum ShopTarget {
     Row,
     Column,
     Rebirth,
+    Reset,
 }
 
 pub fn shop_target(
@@ -65,6 +67,7 @@ pub fn shop_target(
         value if value == land_row => Some(ShopTarget::Row),
         value if value == land_row + 1 => Some(ShopTarget::Column),
         value if value == land_row + 2 => Some(ShopTarget::Rebirth),
+        value if value == land_row + 3 => Some(ShopTarget::Reset),
         _ => None,
     }
 }
@@ -218,10 +221,8 @@ fn render_compatibility(frame: &mut Frame<'_>, view: &View<'_>) {
                 crop.name, seeds, crop.seed_price, crop.sell_price, crop.grow_seconds
             )),
             Line::raw("arrows/WASD/hjkl move | Enter act | [ ] seed | b buy | 1-5 machines"),
-            Line::raw(format!(
-                "{} | n row | m column | r rebirth | q quit",
-                view.status
-            )),
+            Line::raw("n row | m column | r rebirth | x reset | q quit"),
+            Line::raw(view.status.to_owned()),
         ]),
         sections[2],
     );
@@ -447,6 +448,14 @@ fn render_shop(frame: &mut Frame<'_>, area: Rect, view: &View<'_>) {
         format!(" REBIRTH  r · need ${}", view.game.rebirth_requirement()),
         shop_row_style(view, Color::White, ShopTarget::Rebirth),
     ));
+    lines.push(Line::styled(
+        if view.reset_armed {
+            " RESET  x again · DELETE ALL PROGRESS".to_owned()
+        } else {
+            " RESET  x · delete progress".to_owned()
+        },
+        shop_row_style(view, Color::LightRed, ShopTarget::Reset),
+    ));
 
     frame.render_widget(Paragraph::new(lines).block(panel(view, " SHOP ")), area);
 }
@@ -510,6 +519,7 @@ mod tests {
                         offset_col: 0,
                         status: "Ready",
                         hovered_shop: None,
+                        reset_armed: false,
                         compatibility: true,
                         no_color: true,
                     },
@@ -541,6 +551,7 @@ mod tests {
                         offset_col: 0,
                         status: "Sowed Radish",
                         hovered_shop: Some(ShopTarget::Row),
+                        reset_armed: false,
                         compatibility: false,
                         no_color: false,
                     },
@@ -558,6 +569,10 @@ mod tests {
         assert_eq!(
             shop_target(64, 16, 80, 24, 4, 5, false),
             Some(ShopTarget::Column)
+        );
+        assert_eq!(
+            shop_target(64, 18, 80, 24, 4, 5, false),
+            Some(ShopTarget::Reset)
         );
         assert_eq!(shop_target(20, 15, 80, 24, 4, 5, false), None);
     }

@@ -63,6 +63,7 @@ struct App {
     offset_col: u32,
     status: String,
     hovered_shop: Option<ShopTarget>,
+    reset_armed: bool,
     force_compatibility: bool,
     no_color: bool,
     quit: bool,
@@ -111,6 +112,33 @@ impl App {
         self.redraw = true;
         changed
     }
+
+    fn cancel_reset(&mut self) {
+        if self.reset_armed {
+            self.reset_armed = false;
+            self.status = "Reset cancelled".into();
+            self.redraw = true;
+        }
+    }
+
+    fn request_reset(&mut self) -> bool {
+        if !self.reset_armed {
+            self.reset_armed = true;
+            self.status = "WARNING: reset deletes all progress. Press x again to confirm.".into();
+            self.redraw = true;
+            return false;
+        }
+
+        self.game = GameState::new(&self.catalog, unix_time());
+        self.cursor_row = 0;
+        self.cursor_col = 0;
+        self.offset_row = 0;
+        self.offset_col = 0;
+        self.reset_armed = false;
+        self.status = "Progress deleted. New farm started.".into();
+        self.redraw = true;
+        true
+    }
 }
 
 fn main() {
@@ -139,8 +167,12 @@ fn run() -> Result<()> {
         .load_or_create(&catalog, &upgrade_catalog, now)
         .context("could not load farm")?;
     let offline_seconds = now.saturating_sub(game.last_seen_utc).max(0);
-    let offline_multiplier = game.growth_upgrade_multiplier(&upgrade_catalog);
-    game.apply_elapsed(offline_seconds as f64, offline_multiplier);
+    let machinery_actions = apply_offline_progress(
+        &mut game,
+        &catalog,
+        &upgrade_catalog,
+        offline_seconds as f64,
+    );
     game.last_seen_utc = now;
     database.save(&game, now)?;
 
@@ -149,7 +181,11 @@ fn run() -> Result<()> {
         || std::env::var_os("NO_COLOR").is_some()
         || std::env::var("TERM").is_ok_and(|term| term == "dumb");
     let status = if offline_seconds > 0 {
-        format!("Offline growth: {}", duration_text(offline_seconds as u64))
+        let action_suffix = if machinery_actions == 1 { "" } else { "s" };
+        format!(
+            "Offline: {} · {machinery_actions} machine action{action_suffix}",
+            duration_text(offline_seconds as u64)
+        )
     } else {
         "Ready".to_owned()
     };
@@ -163,6 +199,7 @@ fn run() -> Result<()> {
         offset_col: 0,
         status,
         hovered_shop: None,
+        reset_armed: false,
         force_compatibility,
         no_color,
         quit: false,
@@ -222,6 +259,7 @@ fn event_loop(
                         offset_col: app.offset_col,
                         status: &app.status,
                         hovered_shop: app.hovered_shop,
+                        reset_armed: app.reset_armed,
                         compatibility,
                         no_color: app.no_color,
                     },
@@ -278,6 +316,9 @@ fn event_loop(
 }
 
 fn handle_key(app: &mut App, key: KeyEvent, width: u16, height: u16) -> bool {
+    if key.code != KeyCode::Char('x') {
+        app.cancel_reset();
+    }
     let changed = match key.code {
         KeyCode::Char('q') | KeyCode::Esc => {
             app.quit = true;
@@ -351,6 +392,7 @@ fn handle_key(app: &mut App, key: KeyEvent, width: u16, height: u16) -> bool {
             }
             changed
         }
+        KeyCode::Char('x') => app.request_reset(),
         KeyCode::Char(key @ '1'..='5') => {
             let index = key as usize - '1' as usize;
             let result = app.game.buy_upgrade(index, &app.upgrade_catalog);
@@ -377,9 +419,13 @@ fn handle_mouse(app: &mut App, mouse: MouseEvent, width: u16, height: u16) -> bo
             ) {
                 app.hovered_shop = Some(target);
                 app.redraw = true;
+                if target != ShopTarget::Reset {
+                    app.cancel_reset();
+                }
                 let buy_selected = mouse.kind == MouseEventKind::Down(MouseButton::Right);
                 return handle_shop_mouse(app, target, buy_selected);
             }
+            app.cancel_reset();
             let Some((row, col)) = mouse_tile(app, mouse, width, height, compatibility) else {
                 return false;
             };
@@ -464,6 +510,7 @@ fn handle_shop_mouse(app: &mut App, target: ShopTarget, buy_selected: bool) -> b
             }
             changed
         }
+        ShopTarget::Reset => app.request_reset(),
     }
 }
 
@@ -529,6 +576,17 @@ fn unicode_terminal() -> bool {
             value.contains("UTF-8") || value.contains("UTF8")
         })
     })
+}
+
+fn apply_offline_progress(
+    game: &mut GameState,
+    crops: &CropCatalog,
+    upgrades: &UpgradeCatalog,
+    seconds: f64,
+) -> usize {
+    let growth_multiplier = game.growth_upgrade_multiplier(upgrades);
+    game.apply_elapsed(seconds, growth_multiplier);
+    game.run_automation(seconds, crops, upgrades).len()
 }
 
 fn unix_time() -> i64 {
@@ -615,6 +673,7 @@ mod tests {
             offset_col: 0,
             status: "No Radish seeds".into(),
             hovered_shop: None,
+            reset_armed: false,
             force_compatibility: false,
             no_color: false,
             quit: false,
@@ -633,6 +692,40 @@ mod tests {
     fn duration_is_compact() {
         assert_eq!(duration_text(90), "1m");
         assert_eq!(duration_text(90_000), "1d 1h");
+    }
+
+    #[test]
+    fn offline_progress_runs_machinery_after_growth() {
+        let mut app = test_app();
+        app.game.coins = 10_000;
+        app.game.run_earnings = 10_000;
+        assert!(app.game.buy_upgrade(3, &app.upgrade_catalog).changed());
+        assert!(app.game.use_tile(0, 0, &app.catalog).changed());
+        assert!(app.game.use_tile(0, 0, &app.catalog).changed());
+
+        let actions =
+            apply_offline_progress(&mut app.game, &app.catalog, &app.upgrade_catalog, 30.0);
+
+        assert_eq!(actions, 1);
+        assert_eq!(app.game.tile(0, 0), Some(&terminalfarms::TileState::Tilled));
+        assert_eq!(app.game.produce.get("radish"), Some(&1));
+    }
+
+    #[test]
+    fn reset_requires_a_warning_and_confirmation() {
+        let mut app = test_app();
+        app.game.coins = 999;
+        app.game.run_earnings = 500;
+
+        assert!(!app.request_reset());
+        assert!(app.reset_armed);
+        assert_eq!(app.game.coins, 999);
+        assert!(app.status.contains("deletes all progress"));
+
+        assert!(app.request_reset());
+        assert!(!app.reset_armed);
+        assert_eq!(app.game.coins, terminalfarms::game::STARTING_COINS);
+        assert_eq!(app.game.run_earnings, 0);
     }
 
     #[test]

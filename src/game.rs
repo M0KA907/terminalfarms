@@ -195,6 +195,20 @@ impl GameState {
     }
 
     pub fn buy_selected_seed(&mut self, catalog: &CropCatalog) -> ActionResult {
+        let starter = &catalog.crops[0];
+        let needs_recovery_seed = self.coins < starter.seed_price
+            && self.seeds.values().all(|quantity| *quantity == 0)
+            && self.produce.values().all(|quantity| *quantity == 0)
+            && self
+                .tiles
+                .iter()
+                .all(|tile| !matches!(tile, TileState::Planted { .. }));
+        if needs_recovery_seed {
+            *self.seeds.entry(starter.id.clone()).or_default() += 1;
+            self.selected_crop = 0;
+            return ActionResult::Changed(format!("Emergency {} seed supplied", starter.name));
+        }
+
         let crop = self.selected_definition(catalog);
         if self.run_earnings < crop.unlock_earnings {
             return ActionResult::Unchanged(format!(
@@ -474,6 +488,23 @@ mod tests {
         assert_eq!(game.coins, STARTING_COINS);
         assert_eq!(game.rebirth_tokens, 1);
         assert_eq!(game.rows, STARTING_SIZE);
+    }
+
+    #[test]
+    fn emergency_seed_prevents_no_money_softlock() {
+        let catalog = catalog();
+        let mut game = GameState::new(&catalog, 0);
+        game.coins = 0;
+        game.seeds.clear();
+        game.selected_crop = catalog.crops.len() - 1;
+
+        assert!(game.buy_selected_seed(&catalog).changed());
+        assert_eq!(game.coins, 0);
+        assert_eq!(game.selected_crop, 0);
+        assert_eq!(game.seeds.get("radish"), Some(&1));
+
+        assert!(!game.buy_selected_seed(&catalog).changed());
+        assert_eq!(game.seeds.get("radish"), Some(&1));
     }
 
     #[test]

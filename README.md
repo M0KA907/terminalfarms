@@ -1,8 +1,5 @@
 # Terminal Farms
-
-A terminal farming deskpet.
-
-## Run
+## How to run
 
 Requires Rust 1.88 or newer.
 

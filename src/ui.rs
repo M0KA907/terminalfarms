@@ -1,6 +1,6 @@
 use ratatui::{
     Frame,
-    layout::{Constraint, Direction, Layout, Rect},
+    layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
     widgets::{Block, BorderType, Borders, Paragraph, Wrap},
@@ -48,7 +48,7 @@ pub fn shop_target(
         return None;
     }
 
-    let shop_left = width.saturating_mul(68) / 100;
+    let shop_left = width.saturating_mul(58) / 100;
     if column <= shop_left || column >= width.saturating_sub(1) {
         return None;
     }
@@ -77,7 +77,7 @@ pub fn viewport_capacity(width: u16, height: u16, compatibility: bool) -> (u32, 
     let farm_width = if compatibility {
         width
     } else {
-        width.saturating_mul(68) / 100
+        width.saturating_mul(58) / 100
     };
     let cols = farm_width.saturating_sub(2) / cell_width;
     let rows = if compatibility {
@@ -86,6 +86,321 @@ pub fn viewport_capacity(width: u16, height: u16, compatibility: bool) -> (u32, 
         height.saturating_sub(9) / 2
     };
     (u32::from(rows.max(1)), u32::from(cols.max(1)))
+}
+
+pub fn main_menu_target(column: u16, row: u16, width: u16, height: u16) -> Option<usize> {
+    let area = Rect::new(0, 0, width, height);
+    if width < 60 || height < 20 {
+        if column == 0 || column >= width.saturating_sub(1) {
+            return None;
+        }
+        return match row {
+            4 => Some(0),
+            6 => Some(1),
+            8 => Some(2),
+            _ => None,
+        };
+    }
+
+    let vertical = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Min(1),
+            Constraint::Length(7),
+            Constraint::Length(9),
+            Constraint::Length(3),
+            Constraint::Min(1),
+        ])
+        .split(area);
+    let menu = centered_width(vertical[2], 40);
+    if column <= menu.x || column >= menu.right().saturating_sub(1) {
+        return None;
+    }
+    match row {
+        value if value == menu.y + 2 => Some(0),
+        value if value == menu.y + 4 => Some(1),
+        value if value == menu.y + 6 => Some(2),
+        _ => None,
+    }
+}
+
+pub fn render_main_menu(frame: &mut Frame<'_>, selected: usize, no_color: bool) {
+    let area = frame.area();
+    if area.width < 60 || area.height < 20 {
+        render_compact_main_menu(frame, selected, no_color);
+        return;
+    }
+
+    let vertical = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Min(1),
+            Constraint::Length(7),
+            Constraint::Length(9),
+            Constraint::Length(3),
+            Constraint::Min(1),
+        ])
+        .split(area);
+
+    let title_area = centered_width(vertical[1], 58);
+    let title = Paragraph::new(vec![
+        Line::raw("          ╭───────╮"),
+        Line::styled(
+            "          │  ♧ ♧  │",
+            menu_style(no_color, Color::LightGreen).add_modifier(Modifier::BOLD),
+        ),
+        Line::styled(
+            "       TERMINAL FARMS",
+            menu_style(no_color, Color::LightYellow).add_modifier(Modifier::BOLD),
+        ),
+        Line::styled(
+            "    GROW · AUTOMATE · REBIRTH",
+            menu_style(no_color, Color::Rgb(126, 177, 112)),
+        ),
+    ])
+    .alignment(Alignment::Center)
+    .block(menu_panel(no_color, " WELCOME "));
+    frame.render_widget(title, title_area);
+
+    let menu_area = centered_width(vertical[2], 40);
+    let options = ["ENTER FARM", "HOW TO PLAY", "QUIT"];
+    let mut lines = vec![Line::raw("")];
+    for (index, option) in options.iter().enumerate() {
+        let marker = if index == selected { "  ▸ " } else { "    " };
+        let style = if index == selected {
+            selected_menu_style(no_color)
+        } else {
+            menu_style(no_color, Color::White)
+        };
+        lines.push(Line::styled(format!("{marker}{option:<18}"), style));
+        lines.push(Line::raw(""));
+    }
+    frame.render_widget(
+        Paragraph::new(lines)
+            .alignment(Alignment::Center)
+            .block(menu_panel(no_color, " MAIN MENU ")),
+        menu_area,
+    );
+
+    frame.render_widget(
+        Paragraph::new("[↑/↓] Move selection   ·   [ENTER] Choose   ·   [Q] Quit")
+            .alignment(Alignment::Center)
+            .style(menu_style(no_color, Color::DarkGray)),
+        vertical[3],
+    );
+}
+
+fn render_compact_main_menu(frame: &mut Frame<'_>, selected: usize, no_color: bool) {
+    let area = frame.area();
+    let options = ["ENTER FARM", "HOW TO PLAY", "QUIT"];
+    let mut lines = vec![
+        Line::styled(
+            "TERMINAL FARMS",
+            menu_style(no_color, Color::LightGreen).add_modifier(Modifier::BOLD),
+        ),
+        Line::styled(
+            "grow · automate · rebirth",
+            menu_style(no_color, Color::LightYellow),
+        ),
+        Line::raw(""),
+    ];
+    for (index, option) in options.iter().enumerate() {
+        let marker = if index == selected { "> " } else { "  " };
+        let style = if index == selected {
+            selected_menu_style(no_color)
+        } else {
+            menu_style(no_color, Color::White)
+        };
+        lines.push(Line::styled(format!("{marker}{option}"), style));
+        lines.push(Line::raw(""));
+    }
+    lines.push(Line::styled(
+        "[ARROWS] Move · [ENTER] Choose · [Q] Quit",
+        menu_style(no_color, Color::DarkGray),
+    ));
+    frame.render_widget(
+        Paragraph::new(lines)
+            .alignment(Alignment::Center)
+            .block(menu_panel(no_color, " MENU ")),
+        area,
+    );
+}
+
+pub fn render_how_to_play(frame: &mut Frame<'_>, no_color: bool) {
+    let area = frame.area();
+    if area.width < 96 || area.height < 24 {
+        let guide = Paragraph::new(vec![
+            guide_title(no_color, "HOW TO PLAY"),
+            Line::raw(""),
+            Line::raw("TILE LOOP: Enter tills > plants > harvests"),
+            Line::raw("Buy seed > Use tile > Wait > Use tile > Sell"),
+            Line::raw(""),
+            Line::raw("[ARROWS/WASD] Move   [ENTER/SPACE] Use tile"),
+            Line::raw("[LEFT/RIGHT BRACKET] Change crop"),
+            Line::raw("[B] Buy seed   [V] Sell produce   [ESC] Menu"),
+            Line::raw("[1-5] Machines   [N/M] Land   [R] Rebirth"),
+            Line::raw("[X twice] Reset all progress"),
+            Line::raw(""),
+            Line::styled(
+                "[ESC/B] Back · [ENTER] Start farming",
+                menu_style(no_color, Color::LightYellow),
+            ),
+        ])
+        .alignment(Alignment::Center)
+        .wrap(Wrap { trim: true })
+        .block(menu_panel(no_color, " GUIDE "));
+        frame.render_widget(guide, centered_height(area, 14));
+        return;
+    }
+
+    let vertical = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(5),
+            Constraint::Min(12),
+            Constraint::Length(3),
+        ])
+        .split(area);
+    frame.render_widget(
+        Paragraph::new(vec![
+            guide_title(no_color, "HOW TO PLAY"),
+            Line::styled(
+                "Build a tiny farm into a self-running harvest machine.",
+                menu_style(no_color, Color::Rgb(126, 177, 112)),
+            ),
+        ])
+        .alignment(Alignment::Center)
+        .block(menu_panel(no_color, " FIELD GUIDE ")),
+        centered_width(vertical[0], 76),
+    );
+
+    let columns = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Percentage(34),
+            Constraint::Percentage(33),
+            Constraint::Percentage(33),
+        ])
+        .split(vertical[1]);
+    frame.render_widget(
+        Paragraph::new(vec![
+            guide_title(no_color, "THE FARM LOOP"),
+            Line::raw(""),
+            Line::raw("1  Till an empty tile"),
+            Line::raw("2  Sow your selected seed"),
+            Line::raw("3  Let the crop grow"),
+            Line::raw("4  Harvest when it is ready"),
+            Line::raw("5  Sell produce for cash"),
+            Line::raw(""),
+            Line::styled(
+                "[ENTER] automatically does the correct tile action.",
+                menu_style(no_color, Color::LightGreen),
+            ),
+        ])
+        .wrap(Wrap { trim: true })
+        .block(menu_panel(no_color, " START HERE ")),
+        columns[0],
+    );
+    frame.render_widget(
+        Paragraph::new(vec![
+            guide_title(no_color, "ESSENTIAL KEYS"),
+            Line::raw(""),
+            Line::raw("[ARROWS/WASD] Move cursor"),
+            Line::raw("[ENTER/SPACE] Use tile"),
+            Line::raw("[LEFT BRACKET] Previous crop"),
+            Line::raw("[RIGHT BRACKET] Next crop"),
+            Line::raw("[B] Buy selected seed"),
+            Line::raw("[V] Sell all produce"),
+            Line::raw("[ESC] Main menu"),
+        ])
+        .wrap(Wrap { trim: true })
+        .block(menu_panel(no_color, " CONTROLS ")),
+        columns[1],
+    );
+    frame.render_widget(
+        Paragraph::new(vec![
+            guide_title(no_color, "GROW FURTHER"),
+            Line::raw(""),
+            Line::raw("Machines keep working while the game is closed."),
+            Line::raw(""),
+            Line::raw("[1-5] Buy machines"),
+            Line::raw("[N/M] Buy a row or column"),
+            Line::raw("[R] Rebirth for a permanent bonus"),
+            Line::raw("[X twice] Reset all progress"),
+            Line::styled(
+                "Your farm autosaves locally.",
+                menu_style(no_color, Color::LightGreen),
+            ),
+        ])
+        .wrap(Wrap { trim: true })
+        .block(menu_panel(no_color, " AUTOMATION & SAVES ")),
+        columns[2],
+    );
+
+    frame.render_widget(
+        Paragraph::new("[ESC/B] Back to menu     ·     [ENTER] Start farming")
+            .alignment(Alignment::Center)
+            .style(menu_style(no_color, Color::LightYellow)),
+        vertical[2],
+    );
+}
+
+fn centered_width(area: Rect, width: u16) -> Rect {
+    let width = width.min(area.width);
+    Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Min(0),
+            Constraint::Length(width),
+            Constraint::Min(0),
+        ])
+        .split(area)[1]
+}
+
+fn centered_height(area: Rect, height: u16) -> Rect {
+    let height = height.min(area.height);
+    Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Min(0),
+            Constraint::Length(height),
+            Constraint::Min(0),
+        ])
+        .split(area)[1]
+}
+
+fn menu_panel<'a>(no_color: bool, title: &'a str) -> Block<'a> {
+    Block::default()
+        .title(title)
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .border_style(menu_style(no_color, Color::Rgb(93, 135, 81)))
+}
+
+fn menu_style(no_color: bool, color: Color) -> Style {
+    if no_color {
+        Style::default()
+    } else {
+        Style::default().fg(color)
+    }
+}
+
+fn selected_menu_style(no_color: bool) -> Style {
+    if no_color {
+        Style::default().add_modifier(Modifier::REVERSED | Modifier::BOLD)
+    } else {
+        Style::default()
+            .fg(Color::Black)
+            .bg(Color::Rgb(173, 193, 111))
+            .add_modifier(Modifier::BOLD)
+    }
+}
+
+fn guide_title(no_color: bool, title: &str) -> Line<'static> {
+    Line::styled(
+        title.to_owned(),
+        menu_style(no_color, Color::LightYellow).add_modifier(Modifier::BOLD),
+    )
 }
 
 pub fn render(frame: &mut Frame<'_>, view: &View<'_>) {
@@ -133,36 +448,32 @@ fn render_full(frame: &mut Frame<'_>, view: &View<'_>) {
 
     let body = Layout::default()
         .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(68), Constraint::Percentage(32)])
+        .constraints([Constraint::Percentage(58), Constraint::Percentage(42)])
         .split(sections[1]);
     render_farm(frame, body[0], view, 4);
     render_shop(frame, body[1], view);
 
-    let selected = view.game.selected_definition(view.catalog);
-    let seeds = view.game.seeds.get(&selected.id).copied().unwrap_or(0);
-    let produce = view.game.produce.get(&selected.id).copied().unwrap_or(0);
+    let next_action = tile_action_hint(view);
     let footer = Paragraph::new(vec![
         Line::from(vec![
-            Span::styled(" MOVE ", label(view)),
-            Span::raw("↑↓←→ · WASD   "),
-            Span::styled(" ACT ", label(view)),
-            Span::raw("Enter   "),
-            Span::styled(" SEED ", label(view)),
-            Span::raw("[ ] · b   "),
-            Span::styled(" SHOP ", label(view)),
-            Span::raw("1–5   "),
-            Span::styled(" SELL ", label(view)),
-            Span::raw("v   "),
-            Span::styled(" EXIT ", label(view)),
-            Span::raw("q"),
+            Span::styled("[ARROWS]", label(view)),
+            Span::raw(" MOVE  "),
+            Span::styled("[ENTER]", label(view)),
+            Span::raw(" TILE  "),
+            Span::styled("[ / ]", label(view)),
+            Span::raw(" CROP  "),
+            Span::styled("[B]", label(view)),
+            Span::raw(" BUY  "),
+            Span::styled("[V]", label(view)),
+            Span::raw(" SELL  "),
+            Span::styled("[ESC]", label(view)),
+            Span::raw(" MENU"),
         ]),
         Line::from(vec![
-            Span::styled(" ◆ ", styled(view, Color::LightGreen)),
+            Span::styled(" NEXT ", label(view)),
+            Span::styled(next_action, styled(view, Color::LightGreen)),
+            Span::raw("  ·  "),
             Span::styled(view.status, styled(view, Color::LightYellow)),
-            Span::raw(format!(
-                "  ·  {} s:{} p:{}  ·  {}s",
-                selected.name, seeds, produce, selected.grow_seconds
-            )),
         ]),
     ])
     .block(panel(view, ""));
@@ -194,6 +505,35 @@ fn label(view: &View<'_>) -> Style {
         .add_modifier(Modifier::BOLD)
 }
 
+fn tile_action_hint(view: &View<'_>) -> String {
+    match view.game.tile(view.cursor_row, view.cursor_col) {
+        Some(TileState::Untilled) => "[ENTER] Till this tile".into(),
+        Some(TileState::Tilled) => {
+            let crop = view.game.selected_definition(view.catalog);
+            let seeds = view.game.seeds.get(&crop.id).copied().unwrap_or(0);
+            if view.game.run_earnings < crop.unlock_earnings {
+                format!("Earn ${} to unlock {}", crop.unlock_earnings, crop.name)
+            } else if seeds == 0 {
+                format!("[B] Buy a {} seed", crop.name)
+            } else {
+                format!("[ENTER] Plant {}", crop.name)
+            }
+        }
+        Some(TileState::Planted { crop_id, progress }) => {
+            let Some(crop) = view.catalog.get(crop_id) else {
+                return "This crop is unavailable".into();
+            };
+            if *progress >= crop.grow_seconds as f64 {
+                format!("[ENTER] Harvest {}", crop.name)
+            } else {
+                let remaining = (crop.grow_seconds as f64 - progress).ceil() as u64;
+                format!("{} is growing · {remaining}s left", crop.name)
+            }
+        }
+        None => "Move onto a farm tile".into(),
+    }
+}
+
 fn render_compatibility(frame: &mut Frame<'_>, view: &View<'_>) {
     let sections = Layout::default()
         .direction(Direction::Vertical)
@@ -214,15 +554,16 @@ fn render_compatibility(frame: &mut Frame<'_>, view: &View<'_>) {
 
     let crop = view.game.selected_definition(view.catalog);
     let seeds = view.game.seeds.get(&crop.id).copied().unwrap_or(0);
+    let produce = view.game.produce.get(&crop.id).copied().unwrap_or(0);
     frame.render_widget(
         Paragraph::new(vec![
             Line::raw(format!(
-                "{} seed:{} buy:${} sell:${} grow:{}s",
-                crop.name, seeds, crop.seed_price, crop.sell_price, crop.grow_seconds
+                "{} seeds:{} produce:{} | buy:${} sell:${} grow:{}s",
+                crop.name, seeds, produce, crop.seed_price, crop.sell_price, crop.grow_seconds
             )),
-            Line::raw("arrows/WASD/hjkl move | Enter act | [ ] seed | b buy | 1-5 machines"),
-            Line::raw("n row | m column | r rebirth | x reset | q quit"),
-            Line::raw(view.status.to_owned()),
+            Line::raw("[ARROWS] Move | [ENTER] Use tile"),
+            Line::raw("[ / ] Crop | [B] Buy | [V] Sell | [ESC] Menu"),
+            Line::raw(format!("NEXT: {}", tile_action_hint(view))),
         ]),
         sections[2],
     );
@@ -370,8 +711,8 @@ fn tile_spans<'a>(
 
 fn render_shop(frame: &mut Frame<'_>, area: Rect, view: &View<'_>) {
     let mut lines = vec![Line::from(vec![
-        Span::styled(" SEEDS ", label(view)),
-        Span::raw(" [ ] select · b"),
+        Span::styled(" CROPS ", label(view)),
+        Span::raw(" [ / ] · [B] buy"),
     ])];
     for (index, crop) in view.catalog.crops.iter().enumerate() {
         let selected = index == view.game.selected_crop;
@@ -380,12 +721,9 @@ fn render_shop(frame: &mut Frame<'_>, area: Rect, view: &View<'_>) {
         let produce = view.game.produce.get(&crop.id).copied().unwrap_or(0);
         let marker = if selected { ">" } else { " " };
         let text = if unlocked {
-            format!(
-                "{marker} {:<8} s{seeds:<2} ${:<4} p{produce}",
-                crop.name, crop.seed_price
-            )
+            crop_inventory_line(marker, &crop.name, crop.seed_price, seeds, produce)
         } else {
-            format!("{marker} {:<8} lock ${}", crop.name, crop.unlock_earnings)
+            locked_crop_inventory_line(marker, &crop.name, seeds, produce)
         };
         let color = if selected {
             Color::LightYellow
@@ -401,8 +739,8 @@ fn render_shop(frame: &mut Frame<'_>, area: Rect, view: &View<'_>) {
     }
 
     lines.push(Line::from(vec![
-        Span::styled(" MACHINERY ", label(view)),
-        Span::raw(" 1–5 buy"),
+        Span::styled(" MACHINES ", label(view)),
+        Span::raw(" [1-5] buy"),
     ]));
     for (index, upgrade) in view.upgrades.upgrades.iter().enumerate() {
         let level = view.game.upgrade_level(&upgrade.id);
@@ -437,22 +775,22 @@ fn render_shop(frame: &mut Frame<'_>, area: Rect, view: &View<'_>) {
         ));
     }
     lines.push(Line::styled(
-        format!(" LAND  n row     ${}", view.game.row_cost()),
+        format!(" [N] ROW      ${}", view.game.row_cost()),
         shop_row_style(view, Color::White, ShopTarget::Row),
     ));
     lines.push(Line::styled(
-        format!("       m column  ${}", view.game.column_cost()),
+        format!(" [M] COLUMN   ${}", view.game.column_cost()),
         shop_row_style(view, Color::White, ShopTarget::Column),
     ));
     lines.push(Line::styled(
-        format!(" REBIRTH  r · need ${}", view.game.rebirth_requirement()),
+        format!(" [R] REBIRTH  ${}", view.game.rebirth_requirement()),
         shop_row_style(view, Color::White, ShopTarget::Rebirth),
     ));
     lines.push(Line::styled(
         if view.reset_armed {
-            " RESET  x again · DELETE ALL PROGRESS".to_owned()
+            " [X] CONFIRM DELETE".to_owned()
         } else {
-            " RESET  x · delete progress".to_owned()
+            " [X][X] RESET FARM".to_owned()
         },
         shop_row_style(view, Color::LightRed, ShopTarget::Reset),
     ));
@@ -472,6 +810,20 @@ fn shop_row_style(view: &View<'_>, color: Color, target: ShopTarget) -> Style {
             .bg(Color::Rgb(52, 76, 49))
             .add_modifier(Modifier::BOLD)
     }
+}
+
+fn crop_inventory_line(
+    marker: &str,
+    name: &str,
+    seed_price: u64,
+    seeds: u32,
+    produce: u32,
+) -> String {
+    format!("{marker}{name:<6} ${seed_price} seeds:{seeds} produce:{produce}")
+}
+
+fn locked_crop_inventory_line(marker: &str, name: &str, seeds: u32, produce: u32) -> String {
+    format!("{marker}{name:<6} locked seeds:{seeds} produce:{produce}")
 }
 
 fn styled(view: &View<'_>, color: Color) -> Style {
@@ -497,6 +849,78 @@ mod tests {
     use ratatui::{Terminal, backend::TestBackend};
 
     use super::*;
+
+    fn test_view<'a>(
+        game: &'a GameState,
+        catalog: &'a CropCatalog,
+        upgrades: &'a UpgradeCatalog,
+    ) -> View<'a> {
+        View {
+            game,
+            catalog,
+            upgrades,
+            cursor_row: 0,
+            cursor_col: 0,
+            offset_row: 0,
+            offset_col: 0,
+            status: "Ready",
+            hovered_shop: None,
+            reset_armed: false,
+            compatibility: false,
+            no_color: true,
+        }
+    }
+
+    #[test]
+    fn menus_render_at_large_and_compact_sizes() {
+        for (width, height) in [(100, 30), (80, 24), (40, 14)] {
+            let backend = TestBackend::new(width, height);
+            let mut terminal = Terminal::new(backend).unwrap();
+            terminal
+                .draw(|frame| render_main_menu(frame, 1, false))
+                .unwrap();
+            terminal
+                .draw(|frame| render_how_to_play(frame, false))
+                .unwrap();
+        }
+    }
+
+    #[test]
+    fn main_menu_hit_test_tracks_rendered_options() {
+        assert_eq!(main_menu_target(50, 15, 100, 30), Some(0));
+        assert_eq!(main_menu_target(20, 6, 40, 14), Some(1));
+        assert_eq!(main_menu_target(0, 6, 40, 14), None);
+    }
+
+    #[test]
+    fn selected_tile_hint_explains_the_next_action() {
+        let catalog = CropCatalog::embedded().unwrap();
+        let upgrades = UpgradeCatalog::embedded().unwrap();
+        let mut game = GameState::new(&catalog, 0);
+
+        assert!(tile_action_hint(&test_view(&game, &catalog, &upgrades)).contains("Till"));
+        game.use_tile(0, 0, &catalog);
+        assert!(tile_action_hint(&test_view(&game, &catalog, &upgrades)).contains("Plant"));
+        game.use_tile(0, 0, &catalog);
+        assert!(tile_action_hint(&test_view(&game, &catalog, &upgrades)).contains("growing"));
+        game.apply_elapsed(30.0, 1.0);
+        assert!(tile_action_hint(&test_view(&game, &catalog, &upgrades)).contains("Harvest"));
+    }
+
+    #[test]
+    fn every_crop_counter_uses_full_inventory_labels() {
+        let catalog = CropCatalog::embedded().unwrap();
+        for crop in &catalog.crops {
+            for line in [
+                crop_inventory_line(">", &crop.name, crop.seed_price, 12, 34),
+                locked_crop_inventory_line(">", &crop.name, 12, 34),
+            ] {
+                assert!(line.contains(&crop.name));
+                assert!(line.contains("seeds:12"));
+                assert!(line.contains("produce:34"));
+            }
+        }
+    }
 
     #[test]
     fn compatibility_ui_renders_in_small_terminal() {

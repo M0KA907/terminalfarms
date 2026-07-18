@@ -23,11 +23,12 @@ use terminalfarms::{
     ActionResult, CropCatalog, Database, GameState, UpgradeCatalog, game::ACTIVE_GROWTH_MULTIPLIER,
 };
 
-use crate::ui::{ShopTarget, View, shop_target, viewport_capacity};
+use crate::ui::{ShopTarget, View, main_menu_target, shop_target, viewport_capacity};
 
 const INPUT_POLL: Duration = Duration::from_millis(250);
 const GAME_TICK: Duration = Duration::from_secs(1);
 const AUTOSAVE: Duration = Duration::from_secs(30);
+const MAIN_MENU_ITEMS: usize = 3;
 
 #[derive(Debug, Parser)]
 #[command(name = "terminalfarms", version, about = "Terminal farming deskpet")]
@@ -53,6 +54,13 @@ struct Args {
     log: bool,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum AppScreen {
+    MainMenu,
+    HowToPlay,
+    Farm,
+}
+
 struct App {
     game: GameState,
     catalog: CropCatalog,
@@ -64,6 +72,8 @@ struct App {
     status: String,
     hovered_shop: Option<ShopTarget>,
     reset_armed: bool,
+    screen: AppScreen,
+    menu_selection: usize,
     force_compatibility: bool,
     no_color: bool,
     quit: bool,
@@ -139,6 +149,36 @@ impl App {
         self.redraw = true;
         true
     }
+
+    fn select_previous_menu_item(&mut self) {
+        self.menu_selection = if self.menu_selection == 0 {
+            MAIN_MENU_ITEMS - 1
+        } else {
+            self.menu_selection - 1
+        };
+        self.redraw = true;
+    }
+
+    fn select_next_menu_item(&mut self) {
+        self.menu_selection = (self.menu_selection + 1) % MAIN_MENU_ITEMS;
+        self.redraw = true;
+    }
+
+    fn activate_menu_item(&mut self) {
+        match self.menu_selection {
+            0 => self.screen = AppScreen::Farm,
+            1 => self.screen = AppScreen::HowToPlay,
+            2 => self.quit = true,
+            _ => unreachable!("menu selection is clamped"),
+        }
+        self.redraw = true;
+    }
+
+    fn open_main_menu(&mut self) {
+        self.cancel_reset();
+        self.screen = AppScreen::MainMenu;
+        self.redraw = true;
+    }
 }
 
 fn main() {
@@ -200,6 +240,8 @@ fn run() -> Result<()> {
         status,
         hovered_shop: None,
         reset_armed: false,
+        screen: AppScreen::MainMenu,
+        menu_selection: 0,
         force_compatibility,
         no_color,
         quit: false,
@@ -243,11 +285,17 @@ fn event_loop(
 
     while !app.quit {
         let size = terminal.size()?;
-        app.keep_cursor_visible(size.width, size.height);
+        if app.screen == AppScreen::Farm {
+            app.keep_cursor_visible(size.width, size.height);
+        }
         if app.redraw {
             let compatibility = app.compatibility(size.width, size.height);
-            terminal.draw(|frame| {
-                ui::render(
+            terminal.draw(|frame| match app.screen {
+                AppScreen::MainMenu => {
+                    ui::render_main_menu(frame, app.menu_selection, app.no_color)
+                }
+                AppScreen::HowToPlay => ui::render_how_to_play(frame, app.no_color),
+                AppScreen::Farm => ui::render(
                     frame,
                     &View {
                         game: &app.game,
@@ -263,7 +311,7 @@ fn event_loop(
                         compatibility,
                         no_color: app.no_color,
                     },
-                );
+                ),
             })?;
             app.redraw = false;
         }
@@ -316,13 +364,46 @@ fn event_loop(
 }
 
 fn handle_key(app: &mut App, key: KeyEvent, width: u16, height: u16) -> bool {
+    match app.screen {
+        AppScreen::MainMenu => handle_main_menu_key(app, key),
+        AppScreen::HowToPlay => handle_how_to_play_key(app, key),
+        AppScreen::Farm => handle_farm_key(app, key, width, height),
+    }
+}
+
+fn handle_main_menu_key(app: &mut App, key: KeyEvent) -> bool {
+    match key.code {
+        KeyCode::Up | KeyCode::Char('w' | 'k') => app.select_previous_menu_item(),
+        KeyCode::Down | KeyCode::Char('s' | 'j') => app.select_next_menu_item(),
+        KeyCode::Enter | KeyCode::Char(' ') => app.activate_menu_item(),
+        KeyCode::Char('q') | KeyCode::Esc => {
+            app.quit = true;
+            app.redraw = true;
+        }
+        _ => {}
+    }
+    false
+}
+
+fn handle_how_to_play_key(app: &mut App, key: KeyEvent) -> bool {
+    match key.code {
+        KeyCode::Enter | KeyCode::Char(' ') => {
+            app.screen = AppScreen::Farm;
+            app.redraw = true;
+        }
+        KeyCode::Esc | KeyCode::Backspace | KeyCode::Char('q' | 'b') => app.open_main_menu(),
+        _ => {}
+    }
+    false
+}
+
+fn handle_farm_key(app: &mut App, key: KeyEvent, width: u16, height: u16) -> bool {
     if key.code != KeyCode::Char('x') {
         app.cancel_reset();
     }
     let changed = match key.code {
         KeyCode::Char('q') | KeyCode::Esc => {
-            app.quit = true;
-            app.redraw = true;
+            app.open_main_menu();
             false
         }
         KeyCode::Up | KeyCode::Char('w' | 'k') => {
@@ -405,6 +486,21 @@ fn handle_key(app: &mut App, key: KeyEvent, width: u16, height: u16) -> bool {
 }
 
 fn handle_mouse(app: &mut App, mouse: MouseEvent, width: u16, height: u16) -> bool {
+    if app.screen == AppScreen::MainMenu {
+        if let Some(target) = main_menu_target(mouse.column, mouse.row, width, height) {
+            if target != app.menu_selection {
+                app.menu_selection = target;
+                app.redraw = true;
+            }
+            if mouse.kind == MouseEventKind::Down(MouseButton::Left) {
+                app.activate_menu_item();
+            }
+        }
+        return false;
+    }
+    if app.screen == AppScreen::HowToPlay {
+        return false;
+    }
     let compatibility = app.compatibility(width, height);
     match mouse.kind {
         MouseEventKind::Down(MouseButton::Left | MouseButton::Right) => {
@@ -525,7 +621,7 @@ fn mouse_tile(
         (width, 2_u16, height.saturating_sub(4), 2_u16, 1_u16)
     } else {
         (
-            width.saturating_mul(68) / 100,
+            width.saturating_mul(58) / 100,
             3_u16,
             height.saturating_sub(3),
             4_u16,
@@ -674,6 +770,8 @@ mod tests {
             status: "No Radish seeds".into(),
             hovered_shop: None,
             reset_armed: false,
+            screen: AppScreen::Farm,
+            menu_selection: 0,
             force_compatibility: false,
             no_color: false,
             quit: false,
@@ -692,6 +790,63 @@ mod tests {
     fn duration_is_compact() {
         assert_eq!(duration_text(90), "1m");
         assert_eq!(duration_text(90_000), "1d 1h");
+    }
+
+    #[test]
+    fn main_menu_opens_guide_and_farm() {
+        let mut app = test_app();
+        app.screen = AppScreen::MainMenu;
+
+        handle_key(
+            &mut app,
+            KeyEvent::new(KeyCode::Down, crossterm::event::KeyModifiers::NONE),
+            80,
+            24,
+        );
+        assert_eq!(app.menu_selection, 1);
+
+        handle_key(
+            &mut app,
+            KeyEvent::new(KeyCode::Enter, crossterm::event::KeyModifiers::NONE),
+            80,
+            24,
+        );
+        assert_eq!(app.screen, AppScreen::HowToPlay);
+
+        handle_key(
+            &mut app,
+            KeyEvent::new(KeyCode::Enter, crossterm::event::KeyModifiers::NONE),
+            80,
+            24,
+        );
+        assert_eq!(app.screen, AppScreen::Farm);
+
+        handle_key(
+            &mut app,
+            KeyEvent::new(KeyCode::Esc, crossterm::event::KeyModifiers::NONE),
+            80,
+            24,
+        );
+        assert_eq!(app.screen, AppScreen::MainMenu);
+        assert!(!app.quit);
+    }
+
+    #[test]
+    fn main_menu_accepts_mouse_selection() {
+        let mut app = test_app();
+        app.screen = AppScreen::MainMenu;
+        let row = (0..24)
+            .find(|row| main_menu_target(40, *row, 80, 24) == Some(1))
+            .unwrap();
+        let click = MouseEvent {
+            kind: MouseEventKind::Down(MouseButton::Left),
+            column: 40,
+            row,
+            modifiers: crossterm::event::KeyModifiers::NONE,
+        };
+
+        assert!(!handle_mouse(&mut app, click, 80, 24));
+        assert_eq!(app.screen, AppScreen::HowToPlay);
     }
 
     #[test]

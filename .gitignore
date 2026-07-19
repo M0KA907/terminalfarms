@@ -3,3 +3,6 @@
 *.db-shm
 *.db-wal
 *.log
+
+# Private Obsidian vault
+/COMPONENTS/

@@ -4,8 +4,7 @@ name = "Cultivator"
 kind = "auto_till"
 base_price = 100
 unlock_earnings = 50
-interval_seconds = 20
-max_level = 5
+interval_seconds = 12
 
 [[upgrades]]
 id = "seed_drill"
@@ -13,8 +12,7 @@ name = "Seed Drill"
 kind = "auto_sow"
 base_price = 300
 unlock_earnings = 200
-interval_seconds = 15
-max_level = 5
+interval_seconds = 9
 
 [[upgrades]]
 id = "irrigation"
@@ -23,7 +21,6 @@ kind = "growth_boost"
 base_price = 500
 unlock_earnings = 400
 interval_seconds = 0
-max_level = 5
 
 [[upgrades]]
 id = "harvester"
@@ -31,8 +28,7 @@ name = "Harvester"
 kind = "auto_harvest"
 base_price = 900
 unlock_earnings = 750
-interval_seconds = 10
-max_level = 5
+interval_seconds = 6
 
 [[upgrades]]
 id = "market_stall"
@@ -40,5 +36,4 @@ name = "Market Stall"
 kind = "auto_sell"
 base_price = 1600
 unlock_earnings = 1500
-interval_seconds = 30
-max_level = 5
+interval_seconds = 18

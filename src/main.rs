@@ -23,7 +23,10 @@ use terminalfarms::{
     ActionResult, CropCatalog, Database, GameState, UpgradeCatalog, game::ACTIVE_GROWTH_MULTIPLIER,
 };
 
-use crate::ui::{ShopTarget, View, main_menu_target, shop_target, viewport_capacity};
+use crate::ui::{
+    ShopTarget, ShopView, View, main_menu_target, shop_crop_capacity, shop_target,
+    viewport_capacity,
+};
 
 const INPUT_POLL: Duration = Duration::from_millis(250);
 const GAME_TICK: Duration = Duration::from_secs(1);
@@ -69,6 +72,7 @@ struct App {
     cursor_col: u32,
     offset_row: u32,
     offset_col: u32,
+    shop_offset: usize,
     status: String,
     hovered_shop: Option<ShopTarget>,
     reset_armed: bool,
@@ -99,6 +103,34 @@ impl App {
             self.offset_col = self.cursor_col + 1 - visible_cols;
         }
         self.clamp_offsets(visible_rows, visible_cols);
+    }
+
+    fn shop_view(&self, compatibility: bool) -> ShopView {
+        ShopView {
+            crop_count: self.catalog.crops.len(),
+            crop_offset: self.shop_offset,
+            upgrade_count: self.upgrade_catalog.upgrades.len(),
+            compatibility,
+        }
+    }
+
+    fn shop_crop_window(&self, height: u16) -> usize {
+        shop_crop_capacity(height, self.upgrade_catalog.upgrades.len())
+            .min(self.catalog.crops.len())
+    }
+
+    fn keep_shop_selection_visible(&mut self, height: u16) {
+        let visible = self.shop_crop_window(height);
+        let selected = self.game.selected_crop;
+        if selected < self.shop_offset {
+            self.shop_offset = selected;
+        } else if selected >= self.shop_offset + visible {
+            self.shop_offset = selected + 1 - visible;
+        }
+        self.shop_offset = self
+            .shop_offset
+            .min(self.catalog.crops.len().saturating_sub(visible));
+        self.redraw = true;
     }
 
     fn clamp_offsets(&mut self, visible_rows: u32, visible_cols: u32) {
@@ -144,6 +176,7 @@ impl App {
         self.cursor_col = 0;
         self.offset_row = 0;
         self.offset_col = 0;
+        self.shop_offset = 0;
         self.reset_armed = false;
         self.status = "Progress deleted. New farm started.".into();
         self.redraw = true;
@@ -237,6 +270,7 @@ fn run() -> Result<()> {
         cursor_col: 0,
         offset_row: 0,
         offset_col: 0,
+        shop_offset: 0,
         status,
         hovered_shop: None,
         reset_armed: false,
@@ -306,6 +340,7 @@ fn event_loop(
                         offset_row: app.offset_row,
                         offset_col: app.offset_col,
                         status: &app.status,
+                        shop_offset: app.shop_offset,
                         hovered_shop: app.hovered_shop,
                         reset_armed: app.reset_armed,
                         compatibility,
@@ -430,6 +465,7 @@ fn handle_farm_key(app: &mut App, key: KeyEvent, width: u16, height: u16) -> boo
         }
         KeyCode::Char('[') => {
             app.game.select_previous_crop(&app.catalog);
+            app.keep_shop_selection_visible(height);
             app.status = format!(
                 "Selected {}",
                 app.game.selected_definition(&app.catalog).name
@@ -439,6 +475,7 @@ fn handle_farm_key(app: &mut App, key: KeyEvent, width: u16, height: u16) -> boo
         }
         KeyCode::Char(']') => {
             app.game.select_next_crop(&app.catalog);
+            app.keep_shop_selection_visible(height);
             app.status = format!(
                 "Selected {}",
                 app.game.selected_definition(&app.catalog).name
@@ -470,6 +507,7 @@ fn handle_farm_key(app: &mut App, key: KeyEvent, width: u16, height: u16) -> boo
                 app.cursor_col = 0;
                 app.offset_row = 0;
                 app.offset_col = 0;
+                app.shop_offset = 0;
             }
             changed
         }
@@ -509,9 +547,7 @@ fn handle_mouse(app: &mut App, mouse: MouseEvent, width: u16, height: u16) -> bo
                 mouse.row,
                 width,
                 height,
-                app.catalog.crops.len(),
-                app.upgrade_catalog.upgrades.len(),
-                compatibility,
+                app.shop_view(compatibility),
             ) {
                 app.hovered_shop = Some(target);
                 app.redraw = true;
@@ -519,7 +555,9 @@ fn handle_mouse(app: &mut App, mouse: MouseEvent, width: u16, height: u16) -> bo
                     app.cancel_reset();
                 }
                 let buy_selected = mouse.kind == MouseEventKind::Down(MouseButton::Right);
-                return handle_shop_mouse(app, target, buy_selected);
+                let changed = handle_shop_mouse(app, target, buy_selected);
+                app.keep_shop_selection_visible(height);
+                return changed;
             }
             app.cancel_reset();
             let Some((row, col)) = mouse_tile(app, mouse, width, height, compatibility) else {
@@ -537,12 +575,22 @@ fn handle_mouse(app: &mut App, mouse: MouseEvent, width: u16, height: u16) -> bo
             }
         }
         MouseEventKind::ScrollUp => {
-            app.offset_row = app.offset_row.saturating_sub(3);
+            if over_shop(mouse.column, width, compatibility) {
+                app.shop_offset = app.shop_offset.saturating_sub(3);
+            } else {
+                app.offset_row = app.offset_row.saturating_sub(3);
+            }
             app.redraw = true;
             false
         }
         MouseEventKind::ScrollDown => {
-            app.offset_row = (app.offset_row + 3).min(app.game.rows.saturating_sub(1));
+            if over_shop(mouse.column, width, compatibility) {
+                let visible = app.shop_crop_window(height);
+                app.shop_offset =
+                    (app.shop_offset + 3).min(app.catalog.crops.len().saturating_sub(visible));
+            } else {
+                app.offset_row = (app.offset_row + 3).min(app.game.rows.saturating_sub(1));
+            }
             app.redraw = true;
             false
         }
@@ -552,9 +600,7 @@ fn handle_mouse(app: &mut App, mouse: MouseEvent, width: u16, height: u16) -> bo
                 mouse.row,
                 width,
                 height,
-                app.catalog.crops.len(),
-                app.upgrade_catalog.upgrades.len(),
-                compatibility,
+                app.shop_view(compatibility),
             );
             if hovered != app.hovered_shop {
                 app.hovered_shop = hovered;
@@ -564,6 +610,10 @@ fn handle_mouse(app: &mut App, mouse: MouseEvent, width: u16, height: u16) -> bo
         }
         _ => false,
     }
+}
+
+fn over_shop(column: u16, width: u16, compatibility: bool) -> bool {
+    !compatibility && column > width.saturating_mul(58) / 100
 }
 
 fn handle_shop_mouse(app: &mut App, target: ShopTarget, buy_selected: bool) -> bool {
@@ -603,6 +653,7 @@ fn handle_shop_mouse(app: &mut App, target: ShopTarget, buy_selected: bool) -> b
                 app.cursor_col = 0;
                 app.offset_row = 0;
                 app.offset_col = 0;
+                app.shop_offset = 0;
             }
             changed
         }
@@ -767,6 +818,7 @@ mod tests {
             cursor_col: 0,
             offset_row: 0,
             offset_col: 0,
+            shop_offset: 0,
             status: "No Radish seeds".into(),
             hovered_shop: None,
             reset_armed: false,
@@ -904,6 +956,71 @@ mod tests {
         assert!(handle_mouse(&mut app, column_click, 80, 24));
         assert_eq!(app.game.cols, 4);
         assert!(app.status.starts_with("Bought column"));
+    }
+
+    #[test]
+    fn crop_cycling_scrolls_the_shop_window() {
+        let mut app = test_app();
+        let visible = app.shop_crop_window(24);
+        assert!(visible < app.catalog.crops.len());
+
+        // Cycling backwards wraps to the last crop and scrolls the window to it.
+        handle_key(
+            &mut app,
+            KeyEvent::new(KeyCode::Char('['), crossterm::event::KeyModifiers::NONE),
+            80,
+            24,
+        );
+        assert_eq!(app.game.selected_crop, app.catalog.crops.len() - 1);
+        assert_eq!(app.shop_offset, app.catalog.crops.len() - visible);
+
+        // Cycling forward wraps to the first crop and scrolls back to the top.
+        handle_key(
+            &mut app,
+            KeyEvent::new(KeyCode::Char(']'), crossterm::event::KeyModifiers::NONE),
+            80,
+            24,
+        );
+        assert_eq!(app.game.selected_crop, 0);
+        assert_eq!(app.shop_offset, 0);
+    }
+
+    #[test]
+    fn mouse_wheel_over_shop_scrolls_crops_not_farm() {
+        let mut app = test_app();
+        let scroll_down = MouseEvent {
+            kind: MouseEventKind::ScrollDown,
+            column: 64,
+            row: 6,
+            modifiers: crossterm::event::KeyModifiers::NONE,
+        };
+        assert!(!handle_mouse(&mut app, scroll_down, 80, 24));
+        assert_eq!(app.shop_offset, 3);
+        assert_eq!(app.offset_row, 0);
+
+        // Scrolling far down clamps to the last full window.
+        for _ in 0..100 {
+            handle_mouse(&mut app, scroll_down, 80, 24);
+        }
+        let visible = app.shop_crop_window(24);
+        assert_eq!(app.shop_offset, app.catalog.crops.len() - visible);
+
+        let scroll_up = MouseEvent {
+            kind: MouseEventKind::ScrollUp,
+            ..scroll_down
+        };
+        assert!(!handle_mouse(&mut app, scroll_up, 80, 24));
+        assert_eq!(app.shop_offset, app.catalog.crops.len() - visible - 3);
+
+        // The same wheel over the farm still scrolls the field viewport.
+        let farm_scroll = MouseEvent {
+            column: 10,
+            ..scroll_down
+        };
+        app.game.rows = 30;
+        app.game.tiles = vec![terminalfarms::TileState::Untilled; (30 * app.game.cols) as usize];
+        assert!(!handle_mouse(&mut app, farm_scroll, 80, 24));
+        assert_eq!(app.offset_row, 3);
     }
 
     #[test]

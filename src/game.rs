@@ -231,7 +231,7 @@ impl GameState {
     pub fn upgrade_cost(&self, upgrade: &UpgradeDefinition) -> u64 {
         upgrade
             .base_price
-            .saturating_mul(2_u64.saturating_pow(self.upgrade_level(&upgrade.id)))
+            .saturating_mul(u64::from(self.upgrade_level(&upgrade.id)).saturating_add(1))
     }
 
     pub fn buy_upgrade(&mut self, index: usize, catalog: &UpgradeCatalog) -> ActionResult {
@@ -244,9 +244,6 @@ impl GameState {
                 "{} unlocks at ${}",
                 upgrade.name, upgrade.unlock_earnings
             ));
-        }
-        if level >= upgrade.max_level {
-            return ActionResult::Unchanged(format!("{} is max level", upgrade.name));
         }
         let cost = self.upgrade_cost(upgrade);
         if self.coins < cost {
@@ -287,7 +284,10 @@ impl GameState {
                 state.elapsed_seconds -= cycles as f64 * interval;
                 cycles.min(1_000)
             };
-            for _ in 0..cycles {
+            // Each cycle performs one action per machine level, so leveling
+            // both shortens the interval and widens the batch.
+            let actions = cycles.saturating_mul(level as usize).min(1_000);
+            for _ in 0..actions {
                 let Some(message) = self.run_automation_action(upgrade.kind, crops) else {
                     break;
                 };
@@ -427,10 +427,14 @@ impl GameState {
     pub fn growth_stage(progress: f64, grow_seconds: u64) -> usize {
         let ratio = progress / grow_seconds as f64;
         if ratio >= 1.0 {
+            5
+        } else if ratio >= 0.72 {
+            4
+        } else if ratio >= 0.48 {
             3
-        } else if ratio >= 0.45 {
+        } else if ratio >= 0.26 {
             2
-        } else if ratio >= 0.12 {
+        } else if ratio >= 0.10 {
             1
         } else {
             0
@@ -505,6 +509,58 @@ mod tests {
 
         assert!(!game.buy_selected_seed(&catalog).changed());
         assert_eq!(game.seeds.get("radish"), Some(&1));
+    }
+
+    #[test]
+    fn upgrade_cost_multiplies_base_price_by_next_level() {
+        let upgrades = UpgradeCatalog::embedded().unwrap();
+        let cultivator = upgrades.get("cultivator").unwrap();
+        let mut game = GameState::new(&catalog(), 0);
+        assert_eq!(game.upgrade_cost(cultivator), cultivator.base_price);
+        game.upgrades.entry("cultivator".into()).or_default().level = 1;
+        assert_eq!(game.upgrade_cost(cultivator), cultivator.base_price * 2);
+        game.upgrades.entry("cultivator".into()).or_default().level = 4;
+        assert_eq!(game.upgrade_cost(cultivator), cultivator.base_price * 5);
+    }
+
+    #[test]
+    fn machine_levels_batch_actions_per_cycle() {
+        let crops = catalog();
+        let upgrades = UpgradeCatalog::embedded().unwrap();
+        let mut game = GameState::new(&crops, 0);
+        game.upgrades.entry("cultivator".into()).or_default().level = 3;
+
+        // Level 3 cuts the 12s interval to 4s: 12 elapsed seconds run 3 cycles,
+        // and each cycle performs one action per level, tilling all 9 tiles.
+        let messages = game.run_automation(12.0, &crops, &upgrades);
+        assert_eq!(messages.len(), 9);
+        assert!(
+            game.tiles
+                .iter()
+                .all(|tile| matches!(tile, TileState::Tilled))
+        );
+    }
+
+    #[test]
+    fn machines_level_without_limit() {
+        let upgrades = UpgradeCatalog::embedded().unwrap();
+        let mut game = GameState::new(&catalog(), 0);
+        game.coins = u64::MAX;
+        game.run_earnings = u64::MAX;
+        for expected_level in 1..=12 {
+            assert!(game.buy_upgrade(0, &upgrades).changed());
+            assert_eq!(game.upgrade_level("cultivator"), expected_level);
+        }
+    }
+
+    #[test]
+    fn growth_progresses_through_six_stages() {
+        let stages: Vec<usize> = [0.0, 8.0, 20.0, 40.0, 55.0, 60.0, 90.0]
+            .iter()
+            .map(|elapsed| GameState::growth_stage(*elapsed, 60))
+            .collect();
+        assert_eq!(stages, vec![0, 1, 2, 3, 4, 5, 5]);
+        assert_eq!(GameState::growth_stage(59.9, 60), 4);
     }
 
     #[test]

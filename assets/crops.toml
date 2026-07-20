@@ -1,59 +1,849 @@
 [[crops]]
 id = "radish"
 name = "Radish"
-seed_price = 2
+seed_price = 1
 sell_price = 5
-grow_seconds = 30
+grow_seconds = 20
 unlock_earnings = 0
 color = "red"
 art = [
     [" · ", " ░ "],
     [" ╷ ", " ░ "],
     [" ♧ ", " ╵ "],
+    [" ♣ ", " ╵ "],
+    ["♧♣♧", " ╽ "],
     [" ● ", " ╵ "],
 ]
 
 [[crops]]
 id = "carrot"
 name = "Carrot"
-seed_price = 8
+seed_price = 5
 sell_price = 20
-grow_seconds = 90
+grow_seconds = 55
 unlock_earnings = 75
 color = "yellow"
 art = [
-    [" ˙ ", " ░ "],
+    [" · ", " ░ "],
     [" ╷ ", " ░ "],
     [" ♧ ", " ╵ "],
+    [" ♣ ", " ╵ "],
+    ["♧♣♧", " ╽ "],
     [" ♧ ", " ▼ "],
 ]
 
 [[crops]]
 id = "potato"
 name = "Potato"
-seed_price = 25
+seed_price = 15
 sell_price = 65
-grow_seconds = 240
+grow_seconds = 145
 unlock_earnings = 400
 color = "magenta"
 art = [
     [" · ", " ░ "],
     [" ╷ ", " ░ "],
     [" ♧ ", " ╵ "],
+    [" ♣ ", " ╵ "],
+    ["♧♣♧", " ╽ "],
     [" ♣ ", " ◆ "],
 ]
 
 [[crops]]
 id = "wheat"
 name = "Wheat"
-seed_price = 70
+seed_price = 45
 sell_price = 190
-grow_seconds = 600
+grow_seconds = 360
 unlock_earnings = 1500
 color = "yellow"
 art = [
-    [" ˙ ", " ░ "],
+    [" · ", " ░ "],
     [" ╷ ", " ░ "],
     [" ╽ ", " ╵ "],
+    [" ψ ", " ╵ "],
+    ["╽ψ╽", " ╽ "],
     [" Ψ ", " ╵ "],
+]
+
+[[crops]]
+id = "tomato"
+name = "Tomato"
+seed_price = 80
+sell_price = 320
+grow_seconds = 470
+unlock_earnings = 3200
+color = "red"
+art = [
+    [" · ", " ░ "],
+    [" ╷ ", " ░ "],
+    [" ♧ ", " ╵ "],
+    [" ♣ ", " ╵ "],
+    ["♧♣♧", " ╽ "],
+    [" ● ", " ╵ "],
+]
+
+[[crops]]
+id = "onion"
+name = "Onion"
+seed_price = 120
+sell_price = 480
+grow_seconds = 540
+unlock_earnings = 5500
+color = "magenta"
+art = [
+    [" · ", " ░ "],
+    [" ╷ ", " ░ "],
+    [" ♧ ", " ╵ "],
+    [" ♣ ", " ╵ "],
+    ["♧♣♧", " ╽ "],
+    [" ♧ ", " ◉ "],
+]
+
+[[crops]]
+id = "lettuce"
+name = "Lettuce"
+seed_price = 180
+sell_price = 700
+grow_seconds = 600
+unlock_earnings = 9000
+color = "green"
+art = [
+    [" · ", " ░ "],
+    [" ╷ ", " ░ "],
+    [" ♧ ", " ╵ "],
+    [" ♣ ", " ╵ "],
+    ["♧♣♧", " ╽ "],
+    [" ❀ ", " ╵ "],
+]
+
+[[crops]]
+id = "pea"
+name = "Pea"
+seed_price = 240
+sell_price = 980
+grow_seconds = 690
+unlock_earnings = 14000
+color = "green"
+art = [
+    [" · ", " ░ "],
+    [" ╷ ", " ░ "],
+    [" ♧ ", " ╵ "],
+    [" ♣ ", " ╵ "],
+    ["♧♣♧", " ╽ "],
+    [" § ", " ╵ "],
+]
+
+[[crops]]
+id = "beet"
+name = "Beet"
+seed_price = 340
+sell_price = 1350
+grow_seconds = 750
+unlock_earnings = 21000
+color = "red"
+art = [
+    [" · ", " ░ "],
+    [" ╷ ", " ░ "],
+    [" ♧ ", " ╵ "],
+    [" ♣ ", " ╵ "],
+    ["♧♣♧", " ╽ "],
+    [" ♣ ", " ● "],
+]
+
+[[crops]]
+id = "spinach"
+name = "Spinach"
+seed_price = 460
+sell_price = 1850
+grow_seconds = 840
+unlock_earnings = 30000
+color = "green"
+art = [
+    [" · ", " ░ "],
+    [" ╷ ", " ░ "],
+    [" ♧ ", " ╵ "],
+    [" ♣ ", " ╵ "],
+    ["♧♣♧", " ╽ "],
+    [" ♠ ", " ╵ "],
+]
+
+[[crops]]
+id = "turnip"
+name = "Turnip"
+seed_price = 610
+sell_price = 2450
+grow_seconds = 900
+unlock_earnings = 42000
+color = "white"
+art = [
+    [" · ", " ░ "],
+    [" ╷ ", " ░ "],
+    [" ♧ ", " ╵ "],
+    [" ♣ ", " ╵ "],
+    ["♧♣♧", " ╽ "],
+    [" ♧ ", " ○ "],
+]
+
+[[crops]]
+id = "cucumber"
+name = "Cucumber"
+seed_price = 810
+sell_price = 3250
+grow_seconds = 990
+unlock_earnings = 58000
+color = "green"
+art = [
+    [" · ", " ░ "],
+    [" ╷ ", " ░ "],
+    [" ♧ ", " ╵ "],
+    [" ♣ ", " ╵ "],
+    ["♧♣♧", " ╽ "],
+    [" ∫ ", " ╵ "],
+]
+
+[[crops]]
+id = "corn"
+name = "Corn"
+seed_price = 1100
+sell_price = 4300
+grow_seconds = 1080
+unlock_earnings = 78000
+color = "yellow"
+art = [
+    [" · ", " ░ "],
+    [" ╷ ", " ░ "],
+    [" ╽ ", " ╵ "],
+    [" ψ ", " ╵ "],
+    ["╽ψ╽", " ╽ "],
+    [" Ψ ", " ║ "],
+]
+
+[[crops]]
+id = "garlic"
+name = "Garlic"
+seed_price = 1400
+sell_price = 5700
+grow_seconds = 1170
+unlock_earnings = 105000
+color = "white"
+art = [
+    [" · ", " ░ "],
+    [" ╷ ", " ░ "],
+    [" ♧ ", " ╵ "],
+    [" ♣ ", " ╵ "],
+    ["♧♣♧", " ╽ "],
+    [" ♧ ", " ◇ "],
+]
+
+[[crops]]
+id = "leek"
+name = "Leek"
+seed_price = 1800
+sell_price = 7300
+grow_seconds = 1260
+unlock_earnings = 140000
+color = "green"
+art = [
+    [" · ", " ░ "],
+    [" ╷ ", " ░ "],
+    [" ♧ ", " ╵ "],
+    [" ♣ ", " ╵ "],
+    ["♧♣♧", " ╽ "],
+    [" ║ ", " ╵ "],
+]
+
+[[crops]]
+id = "cabbage"
+name = "Cabbage"
+seed_price = 2400
+sell_price = 9400
+grow_seconds = 1380
+unlock_earnings = 185000
+color = "green"
+art = [
+    [" · ", " ░ "],
+    [" ╷ ", " ░ "],
+    [" ♧ ", " ╵ "],
+    [" ♣ ", " ╵ "],
+    ["♧♣♧", " ╽ "],
+    [" ◉ ", " ╵ "],
+]
+
+[[crops]]
+id = "broccoli"
+name = "Broccoli"
+seed_price = 3000
+sell_price = 12000
+grow_seconds = 1470
+unlock_earnings = 240000
+color = "green"
+art = [
+    [" · ", " ░ "],
+    [" ╷ ", " ░ "],
+    [" ♧ ", " ╵ "],
+    [" ♣ ", " ╵ "],
+    ["♧♣♧", " ╽ "],
+    [" ♣ ", " ╽ "],
+]
+
+[[crops]]
+id = "pepper"
+name = "Pepper"
+seed_price = 3900
+sell_price = 15500
+grow_seconds = 1590
+unlock_earnings = 310000
+color = "red"
+art = [
+    [" · ", " ░ "],
+    [" ╷ ", " ░ "],
+    [" ♧ ", " ╵ "],
+    [" ♣ ", " ╵ "],
+    ["♧♣♧", " ╽ "],
+    [" ◆ ", " ╵ "],
+]
+
+[[crops]]
+id = "zucchini"
+name = "Zucchini"
+seed_price = 5000
+sell_price = 20000
+grow_seconds = 1680
+unlock_earnings = 400000
+color = "green"
+art = [
+    [" · ", " ░ "],
+    [" ╷ ", " ░ "],
+    [" ♧ ", " ╵ "],
+    [" ♣ ", " ╵ "],
+    ["♧♣♧", " ╽ "],
+    [" ø ", " ╵ "],
+]
+
+[[crops]]
+id = "eggplant"
+name = "Eggplant"
+seed_price = 6400
+sell_price = 25500
+grow_seconds = 1800
+unlock_earnings = 520000
+color = "magenta"
+art = [
+    [" · ", " ░ "],
+    [" ╷ ", " ░ "],
+    [" ♧ ", " ╵ "],
+    [" ♣ ", " ╵ "],
+    ["♧♣♧", " ╽ "],
+    [" ● ", " ▼ "],
+]
+
+[[crops]]
+id = "cauliflower"
+name = "Cauliflower"
+seed_price = 8100
+sell_price = 32500
+grow_seconds = 1920
+unlock_earnings = 670000
+color = "white"
+art = [
+    [" · ", " ░ "],
+    [" ╷ ", " ░ "],
+    [" ♧ ", " ╵ "],
+    [" ♣ ", " ╵ "],
+    ["♧♣♧", " ╽ "],
+    [" ❁ ", " ╵ "],
+]
+
+[[crops]]
+id = "parsnip"
+name = "Parsnip"
+seed_price = 10000
+sell_price = 42000
+grow_seconds = 2040
+unlock_earnings = 860000
+color = "yellow"
+art = [
+    [" · ", " ░ "],
+    [" ╷ ", " ░ "],
+    [" ♧ ", " ╵ "],
+    [" ♣ ", " ╵ "],
+    ["♧♣♧", " ╽ "],
+    [" ♧ ", " ▽ "],
+]
+
+[[crops]]
+id = "strawberry"
+name = "Strawberry"
+seed_price = 14000
+sell_price = 54000
+grow_seconds = 2160
+unlock_earnings = 1100000
+color = "red"
+art = [
+    [" · ", " ░ "],
+    [" ╷ ", " ░ "],
+    [" ♧ ", " ╵ "],
+    [" ♣ ", " ╵ "],
+    ["♧♣♧", " ╽ "],
+    [" ♥ ", " ╵ "],
+]
+
+[[crops]]
+id = "blueberry"
+name = "Blueberry"
+seed_price = 17000
+sell_price = 69000
+grow_seconds = 2280
+unlock_earnings = 1400000
+color = "blue"
+art = [
+    [" · ", " ░ "],
+    [" ╷ ", " ░ "],
+    [" ♧ ", " ╵ "],
+    [" ♣ ", " ╵ "],
+    ["♧♣♧", " ╽ "],
+    [" ∵ ", " ╵ "],
+]
+
+[[crops]]
+id = "raspberry"
+name = "Raspberry"
+seed_price = 22000
+sell_price = 89000
+grow_seconds = 2400
+unlock_earnings = 1800000
+color = "magenta"
+art = [
+    [" · ", " ░ "],
+    [" ╷ ", " ░ "],
+    [" ♧ ", " ╵ "],
+    [" ♣ ", " ╵ "],
+    ["♧♣♧", " ╽ "],
+    [" ∴ ", " ╵ "],
+]
+
+[[crops]]
+id = "rice"
+name = "Rice"
+seed_price = 28000
+sell_price = 113000
+grow_seconds = 2550
+unlock_earnings = 2300000
+color = "white"
+art = [
+    [" · ", " ░ "],
+    [" ╷ ", " ░ "],
+    [" ╽ ", " ╵ "],
+    [" ψ ", " ╵ "],
+    ["╽ψ╽", " ╽ "],
+    [" ψ ", " ≈ "],
+]
+
+[[crops]]
+id = "barley"
+name = "Barley"
+seed_price = 36000
+sell_price = 145000
+grow_seconds = 2700
+unlock_earnings = 2900000
+color = "yellow"
+art = [
+    [" · ", " ░ "],
+    [" ╷ ", " ░ "],
+    [" ╽ ", " ╵ "],
+    [" ψ ", " ╵ "],
+    ["╽ψ╽", " ╽ "],
+    [" ¥ ", " ╵ "],
+]
+
+[[crops]]
+id = "oat"
+name = "Oat"
+seed_price = 46000
+sell_price = 186000
+grow_seconds = 2850
+unlock_earnings = 3700000
+color = "yellow"
+art = [
+    [" · ", " ░ "],
+    [" ╷ ", " ░ "],
+    [" ╽ ", " ╵ "],
+    [" ψ ", " ╵ "],
+    ["╽ψ╽", " ╽ "],
+    [" φ ", " ╵ "],
+]
+
+[[crops]]
+id = "rye"
+name = "Rye"
+seed_price = 60000
+sell_price = 238000
+grow_seconds = 3000
+unlock_earnings = 4700000
+color = "yellow"
+art = [
+    [" · ", " ░ "],
+    [" ╷ ", " ░ "],
+    [" ╽ ", " ╵ "],
+    [" ψ ", " ╵ "],
+    ["╽ψ╽", " ╽ "],
+    [" ψ ", " ╵ "],
+]
+
+[[crops]]
+id = "soybean"
+name = "Soybean"
+seed_price = 76000
+sell_price = 305000
+grow_seconds = 3180
+unlock_earnings = 6000000
+color = "green"
+art = [
+    [" · ", " ░ "],
+    [" ╷ ", " ░ "],
+    [" ♧ ", " ╵ "],
+    [" ♣ ", " ╵ "],
+    ["♧♣♧", " ╽ "],
+    [" § ", " ╽ "],
+]
+
+[[crops]]
+id = "hops"
+name = "Hops"
+seed_price = 98000
+sell_price = 390000
+grow_seconds = 3360
+unlock_earnings = 7700000
+color = "green"
+art = [
+    [" · ", " ░ "],
+    [" ╷ ", " ░ "],
+    [" ♧ ", " ╵ "],
+    [" ♣ ", " ╵ "],
+    ["♧♣♧", " ╽ "],
+    [" ⁂ ", " ╵ "],
+]
+
+[[crops]]
+id = "cotton"
+name = "Cotton"
+seed_price = 120000
+sell_price = 500000
+grow_seconds = 3540
+unlock_earnings = 9800000
+color = "white"
+art = [
+    [" · ", " ░ "],
+    [" ╷ ", " ░ "],
+    [" ♧ ", " ╵ "],
+    [" ♣ ", " ╵ "],
+    ["♧♣♧", " ╽ "],
+    [" ❃ ", " ╵ "],
+]
+
+[[crops]]
+id = "sunflower"
+name = "Sunflower"
+seed_price = 160000
+sell_price = 650000
+grow_seconds = 3720
+unlock_earnings = 12500000
+color = "yellow"
+art = [
+    [" · ", " ░ "],
+    [" ╷ ", " ░ "],
+    [" ♧ ", " ╵ "],
+    [" ♣ ", " ╵ "],
+    ["♧♣♧", " ╽ "],
+    [" ☼ ", " ║ "],
+]
+
+[[crops]]
+id = "pumpkin"
+name = "Pumpkin"
+seed_price = 210000
+sell_price = 840000
+grow_seconds = 3960
+unlock_earnings = 16000000
+color = "red"
+art = [
+    [" · ", " ░ "],
+    [" ╷ ", " ░ "],
+    [" ♧ ", " ╵ "],
+    [" ♣ ", " ╵ "],
+    ["♧♣♧", " ╽ "],
+    ["(●)", " ╵ "],
+]
+
+[[crops]]
+id = "melon"
+name = "Melon"
+seed_price = 270000
+sell_price = 1080000
+grow_seconds = 4200
+unlock_earnings = 20500000
+color = "green"
+art = [
+    [" · ", " ░ "],
+    [" ╷ ", " ░ "],
+    [" ♧ ", " ╵ "],
+    [" ♣ ", " ╵ "],
+    ["♧♣♧", " ╽ "],
+    ["(○)", " ╵ "],
+]
+
+[[crops]]
+id = "watermelon"
+name = "Watermelon"
+seed_price = 340000
+sell_price = 1380000
+grow_seconds = 4440
+unlock_earnings = 26000000
+color = "green"
+art = [
+    [" · ", " ░ "],
+    [" ╷ ", " ░ "],
+    [" ♧ ", " ╵ "],
+    [" ♣ ", " ╵ "],
+    ["♧♣♧", " ╽ "],
+    ["[●]", " ╽ "],
+]
+
+[[crops]]
+id = "grape"
+name = "Grape"
+seed_price = 440000
+sell_price = 1750000
+grow_seconds = 4680
+unlock_earnings = 33000000
+color = "magenta"
+art = [
+    [" · ", " ░ "],
+    [" ╷ ", " ░ "],
+    [" ♧ ", " ╵ "],
+    [" ♣ ", " ╵ "],
+    ["♧♣♧", " ╽ "],
+    [" ※ ", " ╵ "],
+]
+
+[[crops]]
+id = "kiwi"
+name = "Kiwi"
+seed_price = 560000
+sell_price = 2240000
+grow_seconds = 4920
+unlock_earnings = 42000000
+color = "green"
+art = [
+    [" · ", " ░ "],
+    [" ╷ ", " ░ "],
+    [" ♧ ", " ╵ "],
+    [" ♣ ", " ╵ "],
+    ["♧♣♧", " ╽ "],
+    [" ● ", " ∪ "],
+]
+
+[[crops]]
+id = "pineapple"
+name = "Pineapple"
+seed_price = 720000
+sell_price = 2870000
+grow_seconds = 5160
+unlock_earnings = 54000000
+color = "yellow"
+art = [
+    [" · ", " ░ "],
+    [" ╷ ", " ░ "],
+    [" ♧ ", " ╵ "],
+    [" ♣ ", " ╵ "],
+    ["♧♣♧", " ╽ "],
+    [" ψ ", " ▓ "],
+]
+
+[[crops]]
+id = "mango"
+name = "Mango"
+seed_price = 920000
+sell_price = 3670000
+grow_seconds = 5400
+unlock_earnings = 69000000
+color = "yellow"
+art = [
+    [" · ", " ░ "],
+    [" ╷ ", " ░ "],
+    [" ♧ ", " ╵ "],
+    [" ♣ ", " ╵ "],
+    ["♧♣♧", " ╽ "],
+    [" @ ", " ╵ "],
+]
+
+[[crops]]
+id = "banana"
+name = "Banana"
+seed_price = 1180000
+sell_price = 4700000
+grow_seconds = 5700
+unlock_earnings = 88000000
+color = "yellow"
+art = [
+    [" · ", " ░ "],
+    [" ╷ ", " ░ "],
+    [" ♧ ", " ╵ "],
+    [" ♣ ", " ╵ "],
+    ["♧♣♧", " ╽ "],
+    [" ζ ", " ╵ "],
+]
+
+[[crops]]
+id = "coffee"
+name = "Coffee"
+seed_price = 1500000
+sell_price = 6000000
+grow_seconds = 6000
+unlock_earnings = 113000000
+color = "red"
+art = [
+    [" · ", " ░ "],
+    [" ╷ ", " ░ "],
+    [" ♧ ", " ╵ "],
+    [" ♣ ", " ╵ "],
+    ["♧♣♧", " ╽ "],
+    [" ∷ ", " ╽ "],
+]
+
+[[crops]]
+id = "cacao"
+name = "Cacao"
+seed_price = 1920000
+sell_price = 7700000
+grow_seconds = 6300
+unlock_earnings = 145000000
+color = "red"
+art = [
+    [" · ", " ░ "],
+    [" ╷ ", " ░ "],
+    [" ♧ ", " ╵ "],
+    [" ♣ ", " ╵ "],
+    ["♧♣♧", " ╽ "],
+    [" ◈ ", " ╽ "],
+]
+
+[[crops]]
+id = "tea"
+name = "Tea"
+seed_price = 2460000
+sell_price = 9850000
+grow_seconds = 6600
+unlock_earnings = 185000000
+color = "green"
+art = [
+    [" · ", " ░ "],
+    [" ╷ ", " ░ "],
+    [" ♧ ", " ╵ "],
+    [" ♣ ", " ╵ "],
+    ["♧♣♧", " ╽ "],
+    [" τ ", " ╵ "],
+]
+
+[[crops]]
+id = "bamboo"
+name = "Bamboo"
+seed_price = 3150000
+sell_price = 12600000
+grow_seconds = 6960
+unlock_earnings = 236000000
+color = "green"
+art = [
+    [" · ", " ░ "],
+    [" ╷ ", " ░ "],
+    [" ╽ ", " ╵ "],
+    [" ψ ", " ╵ "],
+    ["╽ψ╽", " ╽ "],
+    [" ║ ", " ║ "],
+]
+
+[[crops]]
+id = "cactus"
+name = "Cactus"
+seed_price = 4020000
+sell_price = 16100000
+grow_seconds = 7320
+unlock_earnings = 300000000
+color = "green"
+art = [
+    [" · ", " ░ "],
+    [" ╷ ", " ░ "],
+    [" ♧ ", " ╵ "],
+    [" ♣ ", " ╵ "],
+    ["♧♣♧", " ╽ "],
+    [" Ψ ", " ▒ "],
+]
+
+[[crops]]
+id = "lavender"
+name = "Lavender"
+seed_price = 5180000
+sell_price = 20700000
+grow_seconds = 7680
+unlock_earnings = 385000000
+color = "magenta"
+art = [
+    [" · ", " ░ "],
+    [" ╷ ", " ░ "],
+    [" ♧ ", " ╵ "],
+    [" ♣ ", " ╵ "],
+    ["♧♣♧", " ╽ "],
+    [" ⁑ ", " ╵ "],
+]
+
+[[crops]]
+id = "mushroom"
+name = "Mushroom"
+seed_price = 6600000
+sell_price = 26400000
+grow_seconds = 8040
+unlock_earnings = 490000000
+color = "white"
+art = [
+    [" · ", " ░ "],
+    [" ╷ ", " ░ "],
+    [" ♧ ", " ╵ "],
+    [" ♣ ", " ╵ "],
+    ["♧♣♧", " ╽ "],
+    [" ∩ ", " ╵ "],
+]
+
+[[crops]]
+id = "starfruit"
+name = "Starfruit"
+seed_price = 8450000
+sell_price = 33800000
+grow_seconds = 8460
+unlock_earnings = 630000000
+color = "yellow"
+art = [
+    [" · ", " ░ "],
+    [" ╷ ", " ░ "],
+    [" ♧ ", " ╵ "],
+    [" ♣ ", " ╵ "],
+    ["♧♣♧", " ╽ "],
+    [" ★ ", " ╵ "],
+]
+
+[[crops]]
+id = "dragonfruit"
+name = "Dragonfruit"
+seed_price = 10820000
+sell_price = 43300000
+grow_seconds = 8880
+unlock_earnings = 800000000
+color = "magenta"
+art = [
+    [" · ", " ░ "],
+    [" ╷ ", " ░ "],
+    [" ♧ ", " ╵ "],
+    [" ♣ ", " ╵ "],
+    ["♧♣♧", " ╽ "],
+    [" ❖ ", " ╵ "],
 ]

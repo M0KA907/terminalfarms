@@ -17,7 +17,7 @@ pub struct CropDefinition {
     pub grow_seconds: u64,
     pub unlock_earnings: u64,
     pub color: String,
-    pub art: [[String; 2]; 4],
+    pub art: [[String; 2]; 6],
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -33,7 +33,6 @@ pub struct UpgradeDefinition {
     pub base_price: u64,
     pub unlock_earnings: u64,
     pub interval_seconds: u64,
-    pub max_level: u32,
 }
 
 #[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq)]
@@ -127,7 +126,6 @@ impl UpgradeCatalog {
             if upgrade.id.is_empty()
                 || upgrade.name.is_empty()
                 || upgrade.base_price == 0
-                || upgrade.max_level == 0
                 || (timed && upgrade.interval_seconds == 0)
                 || (!timed && upgrade.interval_seconds != 0)
             {
@@ -146,7 +144,47 @@ mod tests {
     fn embedded_catalog_is_valid() {
         let catalog = CropCatalog::embedded().unwrap();
         assert_eq!(catalog.crops.first().unwrap().id, "radish");
-        assert!(catalog.crops.len() >= 4);
+        assert!(catalog.crops.len() >= 50);
+    }
+
+    #[test]
+    fn catalog_progression_is_ordered_and_profitable() {
+        let catalog = CropCatalog::embedded().unwrap();
+        let mut last_unlock = 0;
+        let mut last_grow = 0;
+        for crop in &catalog.crops {
+            assert!(
+                crop.unlock_earnings >= last_unlock,
+                "crop `{}` breaks unlock ordering",
+                crop.id
+            );
+            last_unlock = crop.unlock_earnings;
+            assert!(
+                crop.grow_seconds >= last_grow && crop.grow_seconds <= 9_000,
+                "crop `{}` breaks growth-time pacing",
+                crop.id
+            );
+            last_grow = crop.grow_seconds;
+            assert!(
+                crop.sell_price >= crop.seed_price.saturating_mul(3),
+                "crop `{}` seed is too expensive for its sell price",
+                crop.id
+            );
+        }
+    }
+
+    #[test]
+    fn catalog_colors_are_known() {
+        let known = ["red", "yellow", "magenta", "green", "blue", "white"];
+        let catalog = CropCatalog::embedded().unwrap();
+        for crop in &catalog.crops {
+            assert!(
+                known.contains(&crop.color.as_str()),
+                "crop `{}` uses unknown color `{}`",
+                crop.id,
+                crop.color
+            );
+        }
     }
 
     #[test]

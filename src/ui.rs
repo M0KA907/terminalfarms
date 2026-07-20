@@ -19,6 +19,7 @@ pub struct View<'a> {
     pub offset_row: u32,
     pub offset_col: u32,
     pub status: &'a str,
+    pub shop_offset: usize,
     pub hovered_shop: Option<ShopTarget>,
     pub reset_armed: bool,
     pub compatibility: bool,
@@ -35,15 +36,42 @@ pub enum ShopTarget {
     Reset,
 }
 
+pub fn shop_crop_capacity(height: u16, upgrade_count: usize) -> usize {
+    (height as usize).saturating_sub(15 + upgrade_count).max(1)
+}
+
+pub fn visible_shop_crops(
+    height: u16,
+    crop_count: usize,
+    crop_offset: usize,
+    upgrade_count: usize,
+) -> (usize, usize) {
+    let visible = shop_crop_capacity(height, upgrade_count).min(crop_count);
+    let offset = crop_offset.min(crop_count.saturating_sub(visible));
+    (offset, visible)
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct ShopView {
+    pub crop_count: usize,
+    pub crop_offset: usize,
+    pub upgrade_count: usize,
+    pub compatibility: bool,
+}
+
 pub fn shop_target(
     column: u16,
     row: u16,
     width: u16,
     height: u16,
-    crop_count: usize,
-    upgrade_count: usize,
-    compatibility: bool,
+    shop: ShopView,
 ) -> Option<ShopTarget> {
+    let ShopView {
+        crop_count,
+        crop_offset,
+        upgrade_count,
+        compatibility,
+    } = shop;
     if compatibility || width < 80 || height < 24 {
         return None;
     }
@@ -53,10 +81,11 @@ pub fn shop_target(
         return None;
     }
 
+    let (offset, visible) = visible_shop_crops(height, crop_count, crop_offset, upgrade_count);
     let crop_start = 5_u16;
-    let upgrade_start = crop_start + crop_count as u16 + 1;
-    if (crop_start..crop_start + crop_count as u16).contains(&row) {
-        return Some(ShopTarget::Crop((row - crop_start) as usize));
+    let upgrade_start = crop_start + visible as u16 + 1;
+    if (crop_start..crop_start + visible as u16).contains(&row) {
+        return Some(ShopTarget::Crop(offset + (row - crop_start) as usize));
     }
     if (upgrade_start..upgrade_start + upgrade_count as u16).contains(&row) {
         return Some(ShopTarget::Upgrade((row - upgrade_start) as usize));
@@ -667,21 +696,22 @@ fn tile_spans<'a>(
         TileState::Planted { crop_id, progress } => {
             let crop = view.catalog.get(crop_id).expect("validated crop id");
             let stage = GameState::growth_stage(*progress, crop.grow_seconds);
+            let ready = stage == 5;
             let text = if view.compatibility {
-                format!("{} ", ["o", "i", "Y", "*"][stage])
+                format!("{} ", [".", "o", "i", "y", "Y", "*"][stage])
             } else {
                 crop.art[stage][art_row].clone()
             };
-            (
-                text,
-                crop_color(&crop.color),
-                if view.compatibility {
-                    Color::Reset
-                } else {
-                    Color::Rgb(75, 47, 33)
-                },
-                stage == 3,
-            )
+            let background = if view.compatibility {
+                Color::Reset
+            } else if ready && (*progress as u64).is_multiple_of(2) {
+                // Ripe crops pulse: progress keeps accruing past maturity,
+                // so its integer parity flips once per second.
+                Color::Rgb(99, 65, 43)
+            } else {
+                Color::Rgb(75, 47, 33)
+            };
+            (text, crop_color(&crop.color), background, ready)
         }
     };
 
@@ -710,11 +740,29 @@ fn tile_spans<'a>(
 }
 
 fn render_shop(frame: &mut Frame<'_>, area: Rect, view: &View<'_>) {
+    let (offset, visible) = visible_shop_crops(
+        frame.area().height,
+        view.catalog.crops.len(),
+        view.shop_offset,
+        view.upgrades.upgrades.len(),
+    );
     let mut lines = vec![Line::from(vec![
         Span::styled(" CROPS ", label(view)),
-        Span::raw(" [ / ] · [B] buy"),
+        Span::raw(format!(
+            " [ / ] · [B] buy · {}-{}/{}",
+            offset + 1,
+            offset + visible,
+            view.catalog.crops.len()
+        )),
     ])];
-    for (index, crop) in view.catalog.crops.iter().enumerate() {
+    for (index, crop) in view
+        .catalog
+        .crops
+        .iter()
+        .enumerate()
+        .skip(offset)
+        .take(visible)
+    {
         let selected = index == view.game.selected_crop;
         let unlocked = view.game.run_earnings >= crop.unlock_earnings;
         let seeds = view.game.seeds.get(&crop.id).copied().unwrap_or(0);
@@ -751,8 +799,6 @@ fn render_shop(frame: &mut Frame<'_>, area: Rect, view: &View<'_>) {
                 upgrade.name,
                 upgrade.unlock_earnings
             )
-        } else if level >= upgrade.max_level {
-            format!("{} {:<12} L{level} MAX", index + 1, upgrade.name)
         } else {
             format!(
                 "{} {:<12} L{level} ${}",
@@ -819,11 +865,11 @@ fn crop_inventory_line(
     seeds: u32,
     produce: u32,
 ) -> String {
-    format!("{marker}{name:<6} ${seed_price} seeds:{seeds} produce:{produce}")
+    format!("{marker}{name:<11} ${seed_price} seeds:{seeds} produce:{produce}")
 }
 
 fn locked_crop_inventory_line(marker: &str, name: &str, seeds: u32, produce: u32) -> String {
-    format!("{marker}{name:<6} locked seeds:{seeds} produce:{produce}")
+    format!("{marker}{name:<11} locked seeds:{seeds} produce:{produce}")
 }
 
 fn styled(view: &View<'_>, color: Color) -> Style {
@@ -840,6 +886,7 @@ fn crop_color(color: &str) -> Color {
         "yellow" => Color::LightYellow,
         "magenta" => Color::LightMagenta,
         "green" => Color::LightGreen,
+        "blue" => Color::LightBlue,
         _ => Color::White,
     }
 }
@@ -864,6 +911,7 @@ mod tests {
             offset_row: 0,
             offset_col: 0,
             status: "Ready",
+            shop_offset: 0,
             hovered_shop: None,
             reset_armed: false,
             compatibility: false,
@@ -942,6 +990,7 @@ mod tests {
                         offset_row: 0,
                         offset_col: 0,
                         status: "Ready",
+                        shop_offset: 0,
                         hovered_shop: None,
                         reset_armed: false,
                         compatibility: true,
@@ -974,6 +1023,7 @@ mod tests {
                         offset_row: 0,
                         offset_col: 0,
                         status: "Sowed Radish",
+                        shop_offset: 5,
                         hovered_shop: Some(ShopTarget::Row),
                         reset_armed: false,
                         compatibility: false,
@@ -984,20 +1034,62 @@ mod tests {
             .unwrap();
     }
 
+    fn shop(crop_count: usize, crop_offset: usize) -> ShopView {
+        ShopView {
+            crop_count,
+            crop_offset,
+            upgrade_count: 5,
+            compatibility: false,
+        }
+    }
+
     #[test]
     fn shop_hit_test_maps_land_rows() {
         assert_eq!(
-            shop_target(64, 15, 80, 24, 4, 5, false),
+            shop_target(64, 15, 80, 24, shop(4, 0)),
             Some(ShopTarget::Row)
         );
         assert_eq!(
-            shop_target(64, 16, 80, 24, 4, 5, false),
+            shop_target(64, 16, 80, 24, shop(4, 0)),
             Some(ShopTarget::Column)
         );
         assert_eq!(
-            shop_target(64, 18, 80, 24, 4, 5, false),
+            shop_target(64, 18, 80, 24, shop(4, 0)),
             Some(ShopTarget::Reset)
         );
-        assert_eq!(shop_target(20, 15, 80, 24, 4, 5, false), None);
+        assert_eq!(shop_target(20, 15, 80, 24, shop(4, 0)), None);
+    }
+
+    #[test]
+    fn shop_hit_test_maps_scrolled_crop_window() {
+        // 24 rows and 5 upgrades leave 4 visible crop rows.
+        assert_eq!(shop_crop_capacity(24, 5), 4);
+
+        // Offset shifts crop indices; land rows stay pinned below the window.
+        assert_eq!(
+            shop_target(64, 5, 80, 24, shop(50, 7)),
+            Some(ShopTarget::Crop(7))
+        );
+        assert_eq!(
+            shop_target(64, 8, 80, 24, shop(50, 7)),
+            Some(ShopTarget::Crop(10))
+        );
+        assert_eq!(
+            shop_target(64, 15, 80, 24, shop(50, 7)),
+            Some(ShopTarget::Row)
+        );
+
+        // Offsets past the end clamp so the last window stays reachable.
+        assert_eq!(
+            shop_target(64, 5, 80, 24, shop(50, 500)),
+            Some(ShopTarget::Crop(46))
+        );
+
+        // A taller terminal shows more crops before the machine rows.
+        assert_eq!(shop_crop_capacity(30, 5), 10);
+        assert_eq!(
+            shop_target(64, 15 + 6, 80, 30, shop(50, 0)),
+            Some(ShopTarget::Row)
+        );
     }
 }

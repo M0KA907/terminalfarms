@@ -19,3 +19,7 @@ toml = "0.9"
 [profile.release]
 lto = "thin"
 strip = true
+
+# Keep bundled SQLite's C compilation practical on a fresh release build.
+[profile.release.package.libsqlite3-sys]
+opt-level = 1
